@@ -70,7 +70,7 @@ namespace SistemaPontos.Services
                 Id = Guid.NewGuid(),
                 Name = dto.Name,
                 Email = dto.Email,
-                Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                Password = BC.HashPassword(dto.Password),
                 Role = dto.Role,
             };
 

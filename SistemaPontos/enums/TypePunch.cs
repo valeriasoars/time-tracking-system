@@ -2,7 +2,7 @@
 {
     public enum TypePunch
     {
-        CHECKIN,
-        CHECKOUT
+        CHECKIN = 1,
+        CHECKOUT = 2
     }
 }

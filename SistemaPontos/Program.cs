@@ -9,6 +9,7 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IPunchClockService, PunchClockService>();
 
 // Add services to the container.
 
