@@ -1,0 +1,6 @@
+@SistemaPontos_HostAddress = http://localhost:5095
+
+GET {{SistemaPontos_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
