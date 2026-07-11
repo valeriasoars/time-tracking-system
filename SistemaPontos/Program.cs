@@ -10,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPunchClockService, PunchClockService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 // Add services to the container.
 
