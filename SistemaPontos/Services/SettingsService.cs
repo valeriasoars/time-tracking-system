@@ -30,14 +30,14 @@ namespace SistemaPontos.Services
             }
             else
             {
-                var novaSettings = new Settings
+                settingsExistente = new Settings
                 {
                     Id = Guid.NewGuid(),
                     WorkdayHours = dto.WorkdayHours,
                     OvertimeRate = dto.OvertimeRate,
                 };
 
-                _context.Settings.Add(novaSettings);
+                _context.Settings.Add(settingsExistente);
  
             }
             await _context.SaveChangesAsync();

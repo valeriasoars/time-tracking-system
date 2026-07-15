@@ -4,6 +4,8 @@ using SistemaPontos.Dto;
 using SistemaPontos.enums;
 using SistemaPontos.models;
 using SistemaPontos.Services.Interfaces;
+using Helpers.TimeCalculationHelper;
+using SistemaPontos.Helpers;
 
 namespace SistemaPontos.Services
 {
@@ -37,9 +39,7 @@ namespace SistemaPontos.Services
             }
 
             var entries = await query.ToListAsync();
-
-
-            return ProcessAndCalculateHours(entries);
+            return TimeCalculationHelper.CalculateDailyHours(entries);
         }
 
         public async Task<IEnumerable<TimeEntryHistoryResponseDto>> GetTimeEntryHistory(Guid userId)
@@ -49,7 +49,7 @@ namespace SistemaPontos.Services
                 .Where(p => p.UserId == userId)
                 .ToListAsync();
 
-            var calculatedData = ProcessAndCalculateHours(entries);
+            var calculatedData = TimeCalculationHelper.CalculateDailyHours(entries); 
 
             return calculatedData.Select(c => new TimeEntryHistoryResponseDto
             {
@@ -68,7 +68,21 @@ namespace SistemaPontos.Services
                 throw new Exception("Usuário não encontrado.");
             }
 
+            var lastPunch = await _context.PunchClocks
+            .Where(p => p.UserId == userId)
+            .OrderByDescending(p => p.TimeStamp)
+            .FirstOrDefaultAsync();
+
+            if (lastPunch != null && lastPunch.TypePunch == dto.TypePunch)
+            {
+                string tipoRepetido = dto.TypePunch == TypePunch.CHECKIN ? "entrada" : "saída";
+                throw new InvalidOperationException(
+                    $"Não é possível registrar duas {tipoRepetido}s seguidas. " +
+                    $"Registre o ponto oposto antes de tentar novamente.");
+            }
+
             var currentTimestamp = DateTime.UtcNow;
+
 
             var newPunch = new PunchClock
             {
@@ -88,43 +102,6 @@ namespace SistemaPontos.Services
                 Message = $"{actionMessage} registrada com sucesso!",
                 TimeStamp = currentTimestamp
             };
-        }
-
-
-        private IEnumerable<AdminTimeEntryResponseDto> ProcessAndCalculateHours(List<PunchClock> entries)
-        {
-            var groupedEntries = entries.GroupBy(p => new
-            {
-                p.UserId,
-                EmployeeName = p.User?.Name ?? "Funcionário",
-                Date = DateOnly.FromDateTime(p.TimeStamp)
-            });
-
-            var result = new List<AdminTimeEntryResponseDto>();
-
-            foreach (var group in groupedEntries)
-            {
-                var checkInEntry = group.FirstOrDefault(p => p.TypePunch == TypePunch.CHECKIN);
-                var checkOutEntry = group.FirstOrDefault(p => p.TypePunch == TypePunch.CHECKOUT);
-
-                double hoursWorked = 0;
-
-                if (checkInEntry != null && checkOutEntry != null)
-                {
-                    TimeSpan difference = checkOutEntry.TimeStamp - checkInEntry.TimeStamp;
-                    hoursWorked = Math.Round(difference.TotalHours, 2);
-                }
-
-                result.Add(new AdminTimeEntryResponseDto
-                {
-                    Employee = group.Key.EmployeeName,
-                    Date = group.Key.Date,
-                    CheckIn = checkInEntry != null ? TimeOnly.FromDateTime(checkInEntry.TimeStamp) : null,
-                    CheckOut = checkOutEntry != null ? TimeOnly.FromDateTime(checkOutEntry.TimeStamp) : null,
-                    HoursWorked = hoursWorked
-                });
-            }
-            return result;
         }
     }
 }
