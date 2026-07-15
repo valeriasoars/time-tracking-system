@@ -1,8 +1,7 @@
-﻿namespace SistemaPontos.models
+﻿namespace SistemaPontos.Dto
 {
-    public class Settings
+    public class SettingsDto
     {
-        public Guid Id { get; set; }
         public decimal WorkdayHours { get; set; }
         public decimal OvertimeRate { get; set; }
     }
