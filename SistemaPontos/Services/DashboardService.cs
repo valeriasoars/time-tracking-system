@@ -2,6 +2,7 @@
 using SistemaPontos.data;
 using SistemaPontos.Dto;
 using SistemaPontos.enums;
+using SistemaPontos.Helpers;
 using SistemaPontos.models;
 using SistemaPontos.Services.Interfaces;
 
@@ -33,41 +34,16 @@ namespace SistemaPontos.Services
 
             var entries = await query.ToListAsync();
 
-            var groupedByDay = entries.GroupBy(p => new
-            {
-                p.UserId,
-                EmployeeName = p.User?.Name ?? "Funcionário",
-                Date = DateOnly.FromDateTime(p.TimeStamp)
-            });
+            var dailyEntries = TimeCalculationHelper.CalculateDailyHours(entries);
 
-            var dailyCalculatedHours = new List<EmployeeDailyHours>();
-
-            foreach (var group in groupedByDay)
-            {
-                var checkInEntry = group.FirstOrDefault(p => p.TypePunch == TypePunch.CHECKIN);
-                var checkOutEntry = group.FirstOrDefault(p => p.TypePunch == TypePunch.CHECKOUT);
-
-                double hoursWorked = 0;
-
-                if (checkInEntry != null && checkOutEntry != null)
+            var employeesSummary = dailyEntries
+                .GroupBy(e => e.Employee)
+                .Select(g => new EmployeeHoursDto
                 {
-                    TimeSpan difference = checkOutEntry.TimeStamp - checkInEntry.TimeStamp;
-                    hoursWorked = Math.Round(difference.TotalHours, 2);
-                }
-
-                dailyCalculatedHours.Add(new EmployeeDailyHours
-                {
-                    UserId = group.Key.UserId,
-                    Name = group.Key.EmployeeName,
-                    Hours = hoursWorked
-                });
-            }
-            
-            var employeesSummary = dailyCalculatedHours.GroupBy(e => new {e.UserId, e.Name}).Select(g => new EmployeeHoursDto
-            {
-                Name = g.Key.Name,
-                HoursWorked = Math.Round(g.Sum(e => e.Hours), 2)
-            }).ToList();
+                    Name = g.Key,
+                    HoursWorked = Math.Round(g.Sum(e => e.HoursWorked), 2)
+                })
+                .ToList();
 
             double totalCompanyHours = Math.Round(employeesSummary.Sum(e => e.HoursWorked), 2);
 
@@ -76,13 +52,6 @@ namespace SistemaPontos.Services
                 TotalHours = totalCompanyHours,
                 Employees = employeesSummary
             };
-        }
-
-        private class EmployeeDailyHours
-        {
-            public Guid UserId { get; set; }
-            public string Name { get; set; } = string.Empty;
-            public double Hours { get; set; }
         }
     }
 }
